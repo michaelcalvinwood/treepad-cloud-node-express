@@ -1,0 +1,28 @@
+{
+  "name": "treepad-cloud-node-express",
+  "version": "1.0.0",
+  "description": "API for TreePad Cloud via Node/Express",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/michaelwood33311/treepad-cloud-node-express.git"
+  },
+  "keywords": [
+    "treepad"
+  ],
+  "author": "Michael Wood",
+  "license": "SEE LICENSE IN license.md",
+  "bugs": {
+    "url": "https://github.com/michaelwood33311/treepad-cloud-node-express/issues"
+  },
+  "homepage": "https://github.com/michaelwood33311/treepad-cloud-node-express#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.17.3",
+    "uuid": "^8.3.2"
+  }
+}
