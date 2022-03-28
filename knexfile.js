@@ -3,16 +3,14 @@
 /**
  * @type { Object.<string, import("knex").Knex.Config> }
  */
-module.exports = {
-
+ module.exports = {
   development: {
-    client: 'mysql',
+    client: "mysql",
     connection: {
-      host: '207.246.113.131',
-      user: 'root',
-      password: '?6Tz12s{vZu_A$Se',
-      database: 'treepad',
-      charset: 'utf8',
+        host: "tocglobal.c02y7n6dq7og.us-east-1.rds.amazonaws.com",
+        user: "admin",
+        password: "1Kl0ruSxfjbNPCpeosoI",
+        database: "treepad_cloud",
     }
-  },
+  }
 };
