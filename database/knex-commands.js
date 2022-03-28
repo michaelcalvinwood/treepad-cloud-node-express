@@ -7,16 +7,6 @@ const bcrypt = require("bcrypt");
 
 
 
-/*
-    Branches Code:
-        i: id
-        p: parent
-        c: child (first child)
-        b: before (sibling before)
-        a: after (sibling after)
-        s: status (0 = closed, 1 = open) i.e. closed = do not display children; open = display children
-        l: level (1-5) for indentation
-*/
 
 /* addTree occurs in three steps:
     1) A new tree is created in trees
@@ -26,37 +16,55 @@ const bcrypt = require("bcrypt");
 
 const initializeNewTree = (userId, icon, treeName, treeDesc, color) => {
     return knex('trees')
-    .insert ({
+    .insert({
         user_id: Number(userId),
         icon: icon,
         tree_name: treeName,
         tree_desc: treeDesc,
         color: color,
         branch_order: JSON.stringify([])
-    });
+    })
 }
 
 const createNewBranch = treeId => {
     console.log(`created Tree: ${treeId}`);
     return knex('branches')
         .insert ({
-            tree_id: info
+            tree_id: treeId
         })
 }
 
-const updateNewTreeWithInitialBranch = info => {
-    const branchId = info[0];
+const updateNewTreeWithInitialBranch = (treeId, branchId) => {
     console.log('branch added', branchId);
     return knex('trees')
     .update ({
-        branch_order: JSON.stringify([{i: branchId, p: 0, c: 0, b:0, a:0, s:0, l:1}])
+        branch_order: JSON.stringify([`${branchId}:1`])
     })
     .where ({
         tree_id: treeId
     })
 }
 
+const createNewLeaf = branchId => {
+    return knex('leaves')
+    .insert({
+        branch_id: branchId
+    })
+}
+
+const updateNewBranchWithInitialLeaf = (branchId, leafId) => {
+    return knex('branches')
+    .update({
+        leaf_id: leafId
+    })
+    .where({
+        branch_id: branchId
+    })
+}
+
 exports.addTree = (req, res) => {
+    console.log("addTree", req.body);
+
     let {userId, icon, treeName, treeDesc, color} = req.body;
 
     if (!userId || !icon || !treeName) {
@@ -67,9 +75,26 @@ exports.addTree = (req, res) => {
 
     if (!color) color = '#000000';
 
+    let treeId;
+    let branchId;
+    let leafId;
+
     initializeNewTree (userId, icon, treeName, treeDesc, color)
-    .then(info => createNewBranch(info))   
-    .then(info => updateNewTreeWithInitialBranch(info))
+    .then(info => {
+        treeId = info;
+        return createNewBranch(treeId)
+    })   
+    .then(info => {
+        branchId = info[0];
+        return updateNewTreeWithInitialBranch(treeId, branchId)
+    })
+    .then(info => {
+        return createNewLeaf(branchId)
+    })
+    .then(info => {
+        leafId = info[0];
+        return updateNewBranchWithInitialLeaf(branchId, leafId)
+    })
     .then(info => {
         res.status(200).json({status: "success"});
     })

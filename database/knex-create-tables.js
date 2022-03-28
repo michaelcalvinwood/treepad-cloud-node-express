@@ -51,6 +51,7 @@ const createBranchesTable = () => {
         table.bigincrements('branch_id').unsigned().notNullable()
         table.bigInteger('tree_id').unsigned().notNullable().references('tree_id').inTable('trees').onDelete("CASCADE")
         table.string('branch_name', 2048)
+        table.bigInteger('leaf_id').unsigned()
     })
     .catch(err => {
         switch (err.errno) {
