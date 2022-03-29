@@ -14,7 +14,7 @@ const bcrypt = require("bcrypt");
     3) The trees.branch_order is updated with initial state of the new branch
 */
 
-const initializeNewTree = (userId, icon, treeName, treeDesc, color) => {
+exports.initializeNewTree = (userId, icon, treeName, treeDesc, color) => {
     return knex('trees')
     .insert({
         user_id: Number(userId),
@@ -26,8 +26,8 @@ const initializeNewTree = (userId, icon, treeName, treeDesc, color) => {
     })
 }
 
-const createNewBranch = treeId => {
-    console.log(`created Tree: ${treeId}`);
+exports.createNewBranch = treeId => {
+    console.log(`creating new branch for tree ${treeId}`);
     return knex('branches')
         .insert ({
             tree_id: treeId

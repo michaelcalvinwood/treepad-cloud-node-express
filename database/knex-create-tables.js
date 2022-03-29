@@ -1,12 +1,30 @@
 const knex = require('knex')(require('../knexfile').development);
 const bcrypt = require("bcrypt");
+const knexCommands = require('./knex-commands');
+
+const dropTable = table => { 
+    console.log (`dropping ${table}`);
+    return knex.schema.dropTable(table).catch(err => console.log (`could not drop ${table}`))};
+
+const dropAllTables = () => {
+
+    return dropTable('leaves')
+    .then (dropTable('branches'))
+    .then (dropTable('trees'))
+    .then (dropTable('users'))
+    .catch(err => {
+        console.log ("error dropping tables", err);
+    })
+}
 
 const createUsersTable = () => {
+    console.log ("Creating users table...");
     return knex.schema
     .createTable('users', (table) => {
         table.bigincrements('user_id').unsigned().notNullable()
         table.string('user_name').notNullable()
         table.string('password').notNullable()
+        table.string('branch_pool', 1024)
         table.unique('user_name')
     })
     .catch(err => {
@@ -15,12 +33,13 @@ const createUsersTable = () => {
                 console.log ("users table already exists");
                 break;
             default:
-                console.log ('create user table error', err.errno);
+                console.log ('create user table error', err);
         }
     })
 }
 
 const createTreesTable = () => {
+    console.log (`creating tree table`)
     return knex.schema
     .createTable('trees', (table) => {
         table.bigincrements('tree_id').unsigned().notNullable()
@@ -82,11 +101,37 @@ const createLeavesTable = () => {
     });
 }
 
-const addUser = (userName, password) => {
+const insertUser = (userName, password) => {
     return knex('users')
     .insert ({
         user_name: userName,
         password: bcrypt.hashSync(password, 10)
+    })
+}
+
+const addUser = (userName, password) => {
+
+    console.log (`adding ${userName}`);
+    let reservedTree = 1;
+    let branchPool = [];
+
+    insertUser (userName, password)
+    .then(info => {
+        console.log(`create first new branch for tree ${reservedTree}`)
+        return knexCommands.createNewBranch(reservedTree)
+    })
+    .then(info => {
+        branchPool.push(info[0])
+        return knexCommands.createNewBranch(reservedTree)
+    })
+    .then(info => {
+        branchPool.push(info[0])
+        return knexCommands.createNewBranch(reservedTree)
+    })
+    .then(info => {
+        branchPool.push(info[0]);
+        console.log('branchPool', branchPool)
+        return info[0]
     })
     .catch (err => {
         switch (err.errno) {
@@ -102,13 +147,33 @@ const addUser = (userName, password) => {
     // const verified = bcrypt.compareSync('Pa$$w0rd', passwordHash);
 }
 
+const createReservedBranch = treeId => {
+    return knex('branches')
+    .insert ({
+        tree_id: treeId
+    })
+}
+
 exports.createTables = () => {
 
-    createUsersTable()
-    .then(createTreesTable())
-    .then(createBranchesTable())
-    .then(createLeavesTable())
-    .then(() => addUser('admin', "Technologist@33301"))
+    let reservedTree = '';
+    let branchPool = [];
+
+    dropTable('leaves')
+    .then(info => {return dropTable('branches')})
+    .then(info => {return dropTable('trees')})
+    .then(info => {return dropTable('users')})
+    .then(info => {return createUsersTable()})
+    .then(info => {return createTreesTable()})
+    .then(info => {return createBranchesTable()})
+    .then(info => {return createLeavesTable()})
+    .then(info => {return knex('users').insert({user_name: 'system', password: 'asdghaskghalhewieufdsvagksajegf'})})
+    .then(info => {
+        // create reserved tree to be assigned to branches in the users' branch pool
+        console.log ('reserved tree', info);
+        return knexCommands.initializeNewTree(info[0], '/svg/tree.svg', 'reserved system tree', 'This tree is used as a reference for branches that are assigned to each user branch pool', '#000000', 1)
+    })
+    .then(info => {return addUser('admin', "Technologist@33301")}) // IMPORTANT: Move password to .gitignored .env
     .catch (err => {
         console.log ("Create Tables Error:", err);
     })
