@@ -1,6 +1,6 @@
 const knex = require('knex')(require('../knexfile').development);
 const bcrypt = require("bcrypt");
-const knexCommands = require('./knex-commands');
+const knexCore = require('./knex-core');
 
 const dropTable = table => { 
     console.log (`dropping ${table}`);
@@ -69,8 +69,8 @@ const createBranchesTable = () => {
     .createTable('branches', table => {
         table.bigincrements('branch_id').unsigned().notNullable()
         table.bigInteger('tree_id').unsigned().notNullable().references('tree_id').inTable('trees').onDelete("CASCADE")
-        table.string('branch_name', 2048)
-        table.bigInteger('leaf_id').unsigned()
+        table.string('branch_name', 2048),
+        table.string('active_module').notNullable().default('leaf')
     })
     .catch(err => {
         switch (err.errno) {
@@ -86,8 +86,7 @@ const createBranchesTable = () => {
 const createLeavesTable = () => {
     return knex.schema
     .createTable('leaves', table => {
-        table.bigincrements('leaf_id').unsigned().notNullable()
-        table.bigInteger('branch_id').unsigned().notNullable().references('branch_id').inTable('branches').onDelete("CASCADE")
+        table.bigInteger('leaf_id').primary().unsigned().notNullable().references('branch_id').inTable('branches').onDelete("CASCADE")
         table.text('content', 'longtext')
     })
     .catch(err => {
@@ -112,26 +111,40 @@ const insertUser = (userName, password) => {
 const addUser = (userName, password) => {
 
     console.log (`adding ${userName}`);
+    let userId;
     let reservedTree = 1;
     let branchPool = [];
 
     insertUser (userName, password)
     .then(info => {
-        console.log(`create first new branch for tree ${reservedTree}`)
-        return knexCommands.createNewBranch(reservedTree)
+        userId = info[0];
+        console.log(`User id from ${userName} is ${userId}`)
+        return knexCore.createNewBranch(reservedTree)
     })
     .then(info => {
         branchPool.push(info[0])
-        return knexCommands.createNewBranch(reservedTree)
+        return knexCore.createNewBranch(reservedTree)
     })
     .then(info => {
         branchPool.push(info[0])
-        return knexCommands.createNewBranch(reservedTree)
+        return knexCore.createNewBranch(reservedTree)
     })
     .then(info => {
         branchPool.push(info[0]);
         console.log('branchPool', branchPool)
         return info[0]
+    })
+    .then(info => {
+        return knex('users')
+        .update({
+            branch_pool: JSON.stringify(branchPool)
+        })
+        .where({
+            user_id: userId
+        })
+    })
+    .then(info => {
+        console.log(`User ${userName} has been added.`);
     })
     .catch (err => {
         switch (err.errno) {
@@ -171,7 +184,7 @@ exports.createTables = () => {
     .then(info => {
         // create reserved tree to be assigned to branches in the users' branch pool
         console.log ('reserved tree', info);
-        return knexCommands.initializeNewTree(info[0], '/svg/tree.svg', 'reserved system tree', 'This tree is used as a reference for branches that are assigned to each user branch pool', '#000000', 1)
+        return knexCore.initializeNewTree(info[0], '/svg/tree.svg', 'reserved system tree', 'This tree is used as a reference for branches that are assigned to each user branch pool', '#000000', 1)
     })
     .then(info => {return addUser('admin', "Technologist@33301")}) // IMPORTANT: Move password to .gitignored .env
     .catch (err => {
