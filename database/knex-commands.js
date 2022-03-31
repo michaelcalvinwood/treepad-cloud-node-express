@@ -4,8 +4,8 @@
 //     https://dev.to/hoanganhlam/knex-cheat-sheet-79o
 const knex = require('knex')(require('../knexfile').development);
 const bcrypt = require("bcrypt");
-
-
+const knexCore = require('./knex-core');
+const reservedTreeId = 1;
 
 
 /* addTree occurs in three steps:
@@ -14,25 +14,6 @@ const bcrypt = require("bcrypt");
     3) The trees.branch_order is updated with initial state of the new branch
 */
 
-const initializeNewTree = (userId, icon, treeName, treeDesc, color) => {
-    return knex('trees')
-    .insert({
-        user_id: Number(userId),
-        icon: icon,
-        tree_name: treeName,
-        tree_desc: treeDesc,
-        color: color,
-        branch_order: JSON.stringify([])
-    })
-}
-
-const createNewBranch = treeId => {
-    console.log(`created Tree: ${treeId}`);
-    return knex('branches')
-        .insert ({
-            tree_id: treeId
-        })
-}
 
 const updateNewTreeWithInitialBranch = (treeId, branchId) => {
     console.log('branch added', branchId);
@@ -79,28 +60,90 @@ exports.addTree = (req, res) => {
     let branchId;
     let leafId;
 
-    initializeNewTree (userId, icon, treeName, treeDesc, color)
+    knexCore.initializeNewTree (userId, icon, treeName, treeDesc, color)
     .then(info => {
         treeId = info;
-        return createNewBranch(treeId)
+        return knexCore.createNewBranch(treeId)
     })   
     .then(info => {
         branchId = info[0];
         return updateNewTreeWithInitialBranch(treeId, branchId)
     })
-    .then(info => {
-        return createNewLeaf(branchId)
-    })
-    .then(info => {
-        leafId = info[0];
-        return updateNewBranchWithInitialLeaf(branchId, leafId)
-    })
+    // .then(info => {
+    //     return createNewLeaf(branchId)
+    // })
+    // .then(info => {
+    //     leafId = info[0];
+    //     return updateNewBranchWithInitialLeaf(branchId, leafId)
+    // })
     .then(info => {
         res.status(200).json({status: "success"});
     })
     .catch(err => {
         console.log (`create new tree error`, err);
         res.status(401).json({status: "error", message: err});
+    })
+}
+
+exports.updateBranchPool = (req, res) => {
+    let {userId, branchId, treeId} = req.params;
+    console.log(`knex-commands.js updateBranchPool userId, branchId, treeId`, userId, branchId, treeId);
+
+    if (!userId) {
+        return res.status(401).json({status: 'error', message: 'missing userId'}); 
+    }
+
+    if (!branchId) {
+        return res.status(401).json({status: 'error', message: 'missing branchId'}); 
+    }
+
+    if (!treeId) {
+        return res.status(401).json({status: 'error', message: 'missing treeId'}); 
+    }
+
+    let newBranch;
+
+    knexCore.createNewBranch(reservedTreeId)
+    .then(info => {
+        newBranch = info[0];
+        return knex('users')
+        .select('branch_pool')
+        .where({
+            user_id: userId
+        })
+    })
+    .then(info => {
+        console.log(`knex-commands.js updateBranchPool select info`, JSON.stringify(info[0]))
+        let branchPool = JSON.parse(info[0].branch_pool)
+        console.log(`knex-commands.js updateBranchPool branchPool`, branchPool);
+        branchId = Number(branchId);
+        branchPool = branchPool.map(branch => {
+            console.log(`knex-commands.js updateBranchPool compare ${branch}:${typeof branch} to ${branchId}:${typeof branchId}`);
+            return branch !== branchId ? branch : newBranch
+        })
+        console.log(`knex-commands.js updateBranchPool new branchPool`, branchPool);
+        return knex('users')
+        .update ({
+            branch_pool: JSON.stringify(branchPool)
+        })
+        .where({
+            user_id : userId
+        })
+    })
+    .then(info => {
+        return knex('branches')
+        .update({
+            tree_id: treeId
+        })
+        .where({
+            branch_id: branchId
+        })
+    })
+    .then(info => {
+        res.status(200).json({userId: userId, branchId: newBranch});
+    })
+    .catch(err => {
+        console.error(`knex-commands.js updateBranchPool`, err);
     })
 }
 
@@ -119,6 +162,20 @@ exports.getTrees = (req, res) => {
     .catch (err => res.status(401).json({status: 'error', message: err}));
 }
 
+exports.getBranchPool = (req, res) => {
+    const {userId} = req.params;
+
+    if (!userId) {
+        return res.status(401).json({status: 'error', message: 'missing userId'}); 
+    }
+
+    knex('users')
+    .select('user_id', 'branch_pool')
+    .where({"user_id": userId})
+    .then (data => res.status(200).json({status: 'success', message: data}))
+    .catch (err => res.status(401).json({status: 'error', message: err}));
+}
+
 exports.getBranches = (req, res) => {
     const {treeId} = req.params;
 
@@ -131,5 +188,54 @@ exports.getBranches = (req, res) => {
     .where({"trees.tree_id": treeId})
     .then (data => res.status(200).json({status: 'success', message: data}))
     .catch (err => res.status(401).json({status: 'error', message: err}));
+}
 
+exports.getBranchName = (req, res) => {
+    const {branchId} = req.params;
+
+    if (!branchId) {
+        return res.status(401).json({status: 'error', message: 'missing branchId'}); 
+    }
+
+    knex('branches')
+    .select('branch_name', 'branch_id')
+    .where({"branch_id": Number(branchId)})
+    .then (data => res.status(200).json({status: 'success', message: data}))
+    .catch (err => res.status(401).json({status: 'error', message: err}));
+}
+
+exports.saveBranchOrder = (req, res) => {
+    const {treeId} = req.params;
+
+    if (!treeId) {
+        return res.status(401).json({status: 'error', message: 'missing treeId'}); 
+    }
+
+    const {branchOrder, branchNames} = req.body;
+
+    console.log(`knex-commands.js saveBranchOrder treeId, branchOrder`, treeId, branchOrder);
+
+    knex('trees')
+    .update({branch_order: branchOrder})
+    .where({"trees.tree_id": treeId})
+    .then (data => res.status(200).json({status: 'success', message: data}))
+    .catch (err => res.status(401).json({status: 'error', message: err}));
+}
+
+exports.saveBranchName = (req, res) => {
+    const {branchId, branchName} = req.body;
+
+    if (!branchId || !branchName) {
+        return res.status(401).json({status: 'error', message: 'missing data'}); 
+    }
+
+    const {branchOrder, branchNames} = req.body;
+
+    console.log(`knex-commands.js saveBranchName branchId, branchName`, branchId, branchName);
+
+    knex('branches')
+    .update({branch_name: branchName})
+    .where({"branch_id": branchId})
+    .then (data => res.status(200).json({status: 'success', message: data}))
+    .catch (err => res.status(401).json({status: 'error', message: err}));
 }

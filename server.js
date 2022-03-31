@@ -3,7 +3,7 @@ const cors = require('cors');
 const app = express();
 const PORT = 8080;
 
-const knexCommands = require('./database/knex-commands');
+// const knexCommands = require('./database/knex-commands');
 const knexCreateTables = require('./database/knex-create-tables');
 
 knexCreateTables.createTables();
