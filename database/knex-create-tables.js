@@ -4,11 +4,11 @@ const knexCore = require('./knex-core');
 
 const dropTable = table => { 
     console.log (`dropping ${table}`);
-    return knex.schema.dropTable(table).catch(err => console.log (`could not drop ${table}`))};
+    return knex.schema.dropTable(table).catch(err => console.log (`could not drop ${table}`, err))};
 
 const dropAllTables = () => {
 
-    return dropTable('leaves')
+    return dropTable('quill')
     .then (dropTable('branches'))
     .then (dropTable('trees'))
     .then (dropTable('users'))
@@ -24,8 +24,10 @@ const createUsersTable = () => {
         table.bigincrements('user_id').unsigned().notNullable()
         table.string('user_name').notNullable()
         table.string('password').notNullable()
+        table.string('email').notNullable()
         table.string('branch_pool', 1024)
         table.unique('user_name')
+        table.unique('email')
     })
     .catch(err => {
         switch (err.errno) {
@@ -70,7 +72,7 @@ const createBranchesTable = () => {
         table.bigincrements('branch_id').unsigned().notNullable()
         table.bigInteger('tree_id').unsigned().notNullable().references('tree_id').inTable('trees').onDelete("CASCADE")
         table.string('branch_name', 2048),
-        table.string('active_module').notNullable().default('leaf')
+        table.string('module').notNullable().default('quill')
     })
     .catch(err => {
         switch (err.errno) {
@@ -83,19 +85,54 @@ const createBranchesTable = () => {
     });
 }
 
-const createLeavesTable = () => {
+const createModulesTable = () => {
     return knex.schema
-    .createTable('leaves', table => {
-        table.bigInteger('leaf_id').primary().unsigned().notNullable().references('branch_id').inTable('branches').onDelete("CASCADE")
+    .createTable('modules', table => {
+        table.string('module_name').primary().notNullable()
+        table.string('module_icon', 2048).notNullable()
+    })
+    .catch(err => {
+        switch (err.errno) {
+            case 1050:
+                console.log ("modules table already exists");
+                break;
+            default:
+                console.log ('create modules table error', err.errno);
+        }
+    });
+}
+
+
+const createQuillTable = () => {
+    return knex.schema
+    .createTable('quill', table => {
+        table.bigInteger('branch_id').primary().unsigned().notNullable().references('branch_id').inTable('branches').onDelete("CASCADE")
         table.text('content', 'longtext')
     })
     .catch(err => {
         switch (err.errno) {
             case 1050:
-                console.log ("leaves table already exists");
+                console.log ("quill table already exists");
                 break;
             default:
-                console.log ('create leaves table error', err.errno);
+                console.log ('create quill table error', err.errno);
+        }
+    });
+}
+
+const createImageGalleryTable = () => {
+    return knex.schema
+    .createTable('image-gallery', table => {
+        table.bigInteger('image-gallery_id').primary().unsigned().notNullable().references('branch_id').inTable('branches').onDelete("CASCADE")
+        table.text('content', 'longtext')
+    })
+    .catch(err => {
+        switch (err.errno) {
+            case 1050:
+                console.log ("image-gallery table already exists");
+                break;
+            default:
+                console.log ('create image-gallery table error', err.errno);
         }
     });
 }
@@ -108,9 +145,21 @@ const insertUser = (userName, password) => {
     })
 }
 
+const addModule = (moduleName, moduleIcon) => {
+    console.log(`knex-create-tables.js addModule (${moduleName}, ${moduleIcon})`);
+    return knex('modules')
+    .insert({
+        module_name: moduleName,
+        module_icon: moduleIcon
+    })
+    .catch(err => {
+        console.error(`knex-create-tables.js addModule (${moduleName}, ${moduleIcon})`, err);
+    })
+}
+
 const addUser = (userName, password) => {
 
-    console.log (`adding ${userName}`);
+    console.log (`knex-create-tables.js addUser ${userName}`);
     let userId;
     let reservedTree = 1;
     let branchPool = [];
@@ -156,8 +205,7 @@ const addUser = (userName, password) => {
                 console.log ('addUser error', err);
         }
     })
-    
-    // const verified = bcrypt.compareSync('Pa$$w0rd', passwordHash);
+
 }
 
 const createReservedBranch = treeId => {
@@ -172,21 +220,25 @@ exports.createTables = () => {
     let reservedTree = '';
     let branchPool = [];
 
-    dropTable('leaves')
+    dropTable('quill')
+    .then(info => {return dropTable('modules')})
     .then(info => {return dropTable('branches')})
     .then(info => {return dropTable('trees')})
     .then(info => {return dropTable('users')})
     .then(info => {return createUsersTable()})
     .then(info => {return createTreesTable()})
     .then(info => {return createBranchesTable()})
-    .then(info => {return createLeavesTable()})
-    .then(info => {return knex('users').insert({user_name: 'system', password: 'asdghaskghalhewieufdsvagksajegf'})})
+    .then(info => {return createModulesTable()})
+    .then(info => {return createQuillTable()})
+    .then(info => {return createImageGalleryTable()})
+    .then(info => {return knex('users').insert({user_name: 'system', password: 'asdghaskghalhewieufdsvagksajegf'})}) // IMPORTANT: Move to .env
     .then(info => {
         // create reserved tree to be assigned to branches in the users' branch pool
         console.log ('reserved tree', info);
         return knexCore.initializeNewTree(info[0], '/svg/tree.svg', 'reserved system tree', 'This tree is used as a reference for branches that are assigned to each user branch pool', '#000000', 1)
     })
-    .then(info => {return addUser('admin', "Technologist@33301")}) // IMPORTANT: Move password to .gitignored .env
+    .then(info => {return addModule('quill', '/svg/quill.svg')})
+    .then(info => {return addUser('admin', "Technologist@33301", 'michaelwood33311@icloud.com')}) // IMPORTANT: Move password to .gitignored .env
     .catch (err => {
         console.log ("Create Tables Error:", err);
     })

@@ -162,6 +162,66 @@ exports.getTrees = (req, res) => {
     .catch (err => res.status(401).json({status: 'error', message: err}));
 }
 
+// router.route('/branches/active-module/:branchId')
+//     .get(knexCommands.getActiveModule);
+exports.getActiveModule = (req, res) => {
+    const { branchId } = req.params;
+
+    if (!branchId) {
+        return res.status(401).json({status: 'error', message: 'missing branchId'}); 
+    }
+
+    knex('branches')
+    .select('module')
+    .where({branch_id: branchId})
+    .then(info=>{
+        console.log(`knex-commands.js getActiveModule axios branches`, info);
+        const moduleName = info[0].module;
+
+
+
+        return knex('modules')
+        .select('module_icon')
+        .where({module_name: moduleName})
+        .then(info => {
+            const moduleIcon = info[0].module_icon;
+
+            res.status(200).json({moduleName: moduleName, moduleIcon: moduleIcon});
+        })
+        .catch(err => {
+            console.error('knex-commands.js getActiveModule axio modules', err)
+            res.status(401).json(err);
+        })
+       
+    })
+    .catch(err => {
+        res.status(401).json(err);
+    })
+}
+
+exports.getActiveModuleContent = (req, res) => {
+    const { moduleName, branchId } = req.params;
+
+    if (!moduleName || !branchId) {
+        return res.status(401).json({status: 'error', message: 'missing branchId'}); 
+    }
+
+    knex(moduleName)
+    .select('content')
+    .where({branch_id: branchId})
+    .then(info => {
+        const content = info[0].content;
+
+        res.status(200).json({content: content});
+    })
+    .catch(err => {
+        console.error('knex-commands.js getActiveModuleContent axios no content', err)
+        res.status(200).json({content: ''});
+    })
+    
+   
+}
+
 exports.getBranchPool = (req, res) => {
     const {userId} = req.params;
 
@@ -238,4 +298,45 @@ exports.saveBranchName = (req, res) => {
     .where({"branch_id": branchId})
     .then (data => res.status(200).json({status: 'success', message: data}))
     .catch (err => res.status(401).json({status: 'error', message: err}));
+}
+
+exports.saveModuleContent = (req, res) => {
+    const {moduleName, branchId} = req.params;
+
+    if (!moduleName || !branchId) {
+        return res.status(401).json({status: 'error', message: 'missing params'}); 
+    }
+
+    const {content} = req.body;
+
+    if (!content) {
+        return res.status(401).json({status: 'error', message: 'missing content'}); 
+    }
+
+    knex(moduleName)
+    .update({content: content})
+    .where({branch_id: branchId})
+    .then(info => {
+        if (info > 0) {
+            res.status(200).json({status: 'success'})
+            return;
+        }
+
+        knex(moduleName)
+        .insert({content: content, branch_id: branchId})
+        .then(info => {
+            res.status(201).json({status: 'success'})
+            return;
+        })
+        .catch(err => {
+            console.error(`knex-commands.js saveModuleContent`, err)
+            res.status(401).json({status: 'error', error: err})
+        })
+
+    })
+    .catch(err => {
+        // if module_id 
+        console.error(`knex-commands.js saveModuleContent`, err)
+        res.status(401).json({status: 'error', error: err})
+    })
 }
