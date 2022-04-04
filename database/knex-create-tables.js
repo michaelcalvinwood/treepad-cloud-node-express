@@ -136,6 +136,7 @@ const addModule = (moduleName, moduleIcon) => {
         module_name: moduleName,
         module_icon: moduleIcon
     })
+    .then(info => {return createModuleTable(moduleName)})
     .catch(err => {
         console.error(`knex-create-tables.js addModule (${moduleName}, ${moduleIcon})`, err);
     })
@@ -205,9 +206,13 @@ exports.createTables = () => {
     let branchPool = [];
 
     dropTable('quill')
-    .then(info => {return dropTable('modules')})
-    .then(info => {return dropTable('quill')})
+    .then(info => {return dropTable('videos')})
+    .then(info => {return dropTable('chat')})
+    .then(info => {return dropTable('post')})
+    .then(info => {return dropTable('documents')})
+    .then(info => {return dropTable('webpage')})
     .then(info => {return dropTable('image_gallery')})
+    .then(info => {return dropTable('modules')})
     .then(info => {return dropTable('branches')})
     .then(info => {return dropTable('trees')})
     .then(info => {return dropTable('users')})
@@ -215,8 +220,6 @@ exports.createTables = () => {
     .then(info => {return createTreesTable()})
     .then(info => {return createBranchesTable()})
     .then(info => {return createModulesTable()})
-    .then(info => {return createModuleTable('quill')})
-    .then(info => {return createModuleTable('image_gallery')})
     .then(info => {return knex('users').insert({user_name: 'system', password: 'asdghaskghalhewieufdsvagksajegf', email: 'noemail@noemail.com'})}) // IMPORTANT: Move to .env
     .then(info => {
         // create reserved tree to be assigned to branches in the users' branch pool
@@ -229,6 +232,7 @@ exports.createTables = () => {
     .then(info => {return addModule('chat', '/svg/chat.svg')})
     .then(info => {return addModule('post', '/svg/post.svg')})
     .then(info => {return addModule('webpage', '/svg/webpage.svg')})
+    .then(info => {return addModule('videos', '/svg/video.svg')})
     .then(info => {return addUser('admin', "Technologist@33301", 'michaelwood33311@icloud.com')}) // IMPORTANT: Move password to .gitignored .env
     .catch (err => {
         console.log ("Create Tables Error:", err);

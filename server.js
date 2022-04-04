@@ -18,6 +18,8 @@ const path = require('path');
 const multer = require('multer');
 const storage = multer.diskStorage({
     destination: (req, file, cb) =>{
+
+        // create the destination path if it does not already exist
         const path = `assets/${req.decode.userid}`;
         if (!fs.existsSync(path)){
           fs.mkdirSync(path);
@@ -28,6 +30,8 @@ const storage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         console.log('routes.js multerConfig', 'uploaded file', file, 'req.decode', req.decode);
+        if (!req.thumbnails) req.thumbnails = [];
+        req.thumbnails.push(file.originalname);
         cb(null, file.originalname)
     }
 })
@@ -73,7 +77,9 @@ function getToken(req) {
   return req.headers.authorization.split(" ")[1];
 }
 
-app.use('/assets', upload.any('image'))
+// app.use('/assets', upload.any('image'));
+
+app.use('/assets', upload.any('image'));
 
 const routes = require('./routes/routes');
 app.use('/', routes);
