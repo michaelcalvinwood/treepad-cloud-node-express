@@ -3,12 +3,41 @@ const cors = require('cors');
 const app = express();
 const PORT = 8080;
 const jwt = require('jsonwebtoken');
+const fs = require('fs');
 
 // const knexCommands = require('./database/knex-commands');
 const knexCreateTables = require('./database/knex-create-tables');
 
 //IMPORTANT: Change to .env
 const superSecretKey='testKeyChangeLater';
+
+
+
+// multer setup --begin
+const path = require('path');
+const multer = require('multer');
+const storage = multer.diskStorage({
+    destination: (req, file, cb) =>{
+        const path = `assets/${req.decode.userid}`;
+        if (!fs.existsSync(path)){
+          fs.mkdirSync(path);
+        
+          console.log(`${path} Created Successfully.`);
+      }
+        cb(null, path);
+    },
+    filename: (req, file, cb) => {
+        console.log('routes.js multerConfig', 'uploaded file', file, 'req.decode', req.decode);
+        cb(null, file.originalname)
+    }
+})
+// const upload = multer({storage: storage});
+const upload = multer({
+  storage: storage
+});
+
+//multer setup --end
+
 
 knexCreateTables.createTables();
 
@@ -18,7 +47,7 @@ app.use(cors());
 
 app.use((req, res, next) => {
   
-  if (req.url === "/signup" || req.url === "/login") {
+  if (req.url === "/signup" || req.url === "/login" || req.url.startsWith("/asset/")) {
     next();
   } else {
     const token = getToken(req);
@@ -44,6 +73,7 @@ function getToken(req) {
   return req.headers.authorization.split(" ")[1];
 }
 
+app.use('/assets', upload.any('image'))
 
 const routes = require('./routes/routes');
 app.use('/', routes);
