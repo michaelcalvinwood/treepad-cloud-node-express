@@ -190,7 +190,7 @@ exports.getActiveModule = (req, res) => {
         })
         .catch(err => {
             console.error('knex-commands.js getActiveModule axio modules', err)
-            res.status(401).json(err);
+            res.status(404).json(err);
         })
        
     })
@@ -216,7 +216,7 @@ exports.getActiveModuleContent = (req, res) => {
     })
     .catch(err => {
         console.error('knex-commands.js getActiveModuleContent axios no content', err)
-        res.status(200).json({content: ''});
+        res.status(200).json({content: JSON.stringify([])});
     })
     
    
@@ -338,5 +338,40 @@ exports.saveModuleContent = (req, res) => {
         // if module_id 
         console.error(`knex-commands.js saveModuleContent`, err)
         res.status(401).json({status: 'error', error: err})
+    })
+}
+
+exports.uploadAssets = (req, res) => {
+    console.log('knex-commands.js uploadAssets', 'token', req.decode);
+
+    res.status(200).send('ok');
+}
+
+exports.getAllModules = (req, res) => {
+    console.log('knex-commands.js getAllModules');
+
+    knex('modules')
+    .then(info => {
+        res.status(200).json(info);
+    })
+    .catch(err => {
+        res.status(400).json(err)
+    })
+}
+
+exports.setActiveModule = (req, res) => {
+    const {moduleName} = req.body;
+    const {branchId} = req.params;
+
+    console.log(`knex-commands setActiveModule ${moduleName} for branch ${branchId}`);
+
+    knex('branches')
+    .update({module: moduleName})
+    .where({branch_id: branchId})
+    .then(info => {
+        res.status(200).send('success')
+    })
+    .catch(err => {
+        res.status(400).json(err);
     })
 }

@@ -72,7 +72,7 @@ const createBranchesTable = () => {
         table.bigincrements('branch_id').unsigned().notNullable()
         table.bigInteger('tree_id').unsigned().notNullable().references('tree_id').inTable('trees').onDelete("CASCADE")
         table.string('branch_name', 2048),
-        table.string('module').notNullable().default('quill')
+        table.string('module')
     })
     .catch(err => {
         switch (err.errno) {
@@ -90,6 +90,7 @@ const createModulesTable = () => {
     .createTable('modules', table => {
         table.string('module_name').primary().notNullable()
         table.string('module_icon', 2048).notNullable()
+        table.unique('module_name')
     })
     .catch(err => {
         switch (err.errno) {
@@ -102,46 +103,29 @@ const createModulesTable = () => {
     });
 }
 
-
-const createQuillTable = () => {
+const createModuleTable = moduleName => {
     return knex.schema
-    .createTable('quill', table => {
+    .createTable(moduleName, table => {
         table.bigInteger('branch_id').primary().unsigned().notNullable().references('branch_id').inTable('branches').onDelete("CASCADE")
         table.text('content', 'longtext')
     })
     .catch(err => {
         switch (err.errno) {
             case 1050:
-                console.log ("quill table already exists");
+                console.log (`${moduleName} table already exists`);
                 break;
             default:
-                console.log ('create quill table error', err.errno);
+                console.log (`create ${moduleName} table error1`, err.errno);
         }
     });
 }
 
-const createImageGalleryTable = () => {
-    return knex.schema
-    .createTable('image-gallery', table => {
-        table.bigInteger('image-gallery_id').primary().unsigned().notNullable().references('branch_id').inTable('branches').onDelete("CASCADE")
-        table.text('content', 'longtext')
-    })
-    .catch(err => {
-        switch (err.errno) {
-            case 1050:
-                console.log ("image-gallery table already exists");
-                break;
-            default:
-                console.log ('create image-gallery table error', err.errno);
-        }
-    });
-}
-
-const insertUser = (userName, password) => {
+const insertUser = (userName, password, email) => {
     return knex('users')
     .insert ({
         user_name: userName,
-        password: bcrypt.hashSync(password, 10)
+        password: bcrypt.hashSync(password, 10),
+        email: email
     })
 }
 
@@ -157,14 +141,14 @@ const addModule = (moduleName, moduleIcon) => {
     })
 }
 
-const addUser = (userName, password) => {
+const addUser = (userName, password, email) => {
 
     console.log (`knex-create-tables.js addUser ${userName}`);
     let userId;
     let reservedTree = 1;
     let branchPool = [];
 
-    insertUser (userName, password)
+    insertUser (userName, password, email)
     .then(info => {
         userId = info[0];
         console.log(`User id from ${userName} is ${userId}`)
@@ -222,6 +206,8 @@ exports.createTables = () => {
 
     dropTable('quill')
     .then(info => {return dropTable('modules')})
+    .then(info => {return dropTable('quill')})
+    .then(info => {return dropTable('image_gallery')})
     .then(info => {return dropTable('branches')})
     .then(info => {return dropTable('trees')})
     .then(info => {return dropTable('users')})
@@ -229,15 +215,20 @@ exports.createTables = () => {
     .then(info => {return createTreesTable()})
     .then(info => {return createBranchesTable()})
     .then(info => {return createModulesTable()})
-    .then(info => {return createQuillTable()})
-    .then(info => {return createImageGalleryTable()})
-    .then(info => {return knex('users').insert({user_name: 'system', password: 'asdghaskghalhewieufdsvagksajegf'})}) // IMPORTANT: Move to .env
+    .then(info => {return createModuleTable('quill')})
+    .then(info => {return createModuleTable('image_gallery')})
+    .then(info => {return knex('users').insert({user_name: 'system', password: 'asdghaskghalhewieufdsvagksajegf', email: 'noemail@noemail.com'})}) // IMPORTANT: Move to .env
     .then(info => {
         // create reserved tree to be assigned to branches in the users' branch pool
         console.log ('reserved tree', info);
         return knexCore.initializeNewTree(info[0], '/svg/tree.svg', 'reserved system tree', 'This tree is used as a reference for branches that are assigned to each user branch pool', '#000000', 1)
     })
     .then(info => {return addModule('quill', '/svg/quill.svg')})
+    .then(info => {return addModule('image_gallery', '/svg/image_gallery.svg')})
+    .then(info => {return addModule('documents', '/svg/documents.svg')})
+    .then(info => {return addModule('chat', '/svg/chat.svg')})
+    .then(info => {return addModule('post', '/svg/post.svg')})
+    .then(info => {return addModule('webpage', '/svg/webpage.svg')})
     .then(info => {return addUser('admin', "Technologist@33301", 'michaelwood33311@icloud.com')}) // IMPORTANT: Move password to .gitignored .env
     .catch (err => {
         console.log ("Create Tables Error:", err);
