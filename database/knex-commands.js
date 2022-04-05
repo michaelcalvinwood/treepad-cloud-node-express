@@ -5,7 +5,10 @@
 const knex = require('knex')(require('../knexfile').development);
 const bcrypt = require("bcrypt");
 const knexCore = require('./knex-core');
+const ThumbnailGenerator = require('@openquantum/video-thumbnail-generator-for-cloud-functions').default;
 const reservedTreeId = 1;
+const fs = require('fs');
+const path = require("path");
 
 
 /* addTree occurs in three steps:
@@ -341,10 +344,67 @@ exports.saveModuleContent = (req, res) => {
     })
 }
 
+getFileExtension = fileName => {
+    if (!fileName.length) return false;
+
+    const parts = fileName.split('.');
+
+    if (parts.length === 1) return false;
+
+    // abuse prevention
+    if (fileName.indexOf('.ThUmBnAiL.jpg') !== -1) return false;
+            
+    return parts[parts.length - 1];
+}
+
+getThumbnailName = (fileName, extension) => {
+    switch (extension.toLowerCase()) {
+        case 'gif':
+        case 'png':
+        case 'jpeg':
+        case 'jpg':
+            return false;
+        default:
+            return `${fileName}.ThUmBnAiL.jpg`;
+    }
+}
+
 exports.uploadAssets = (req, res) => {
     console.log('knex-commands.js uploadAssets', 'token', req.decode);
 
-    res.status(200).send('ok');
+    console.log('knex-commands.js uploadAssets', 'thumbnails', req.thumbnails);
+
+    req.thumbnails.forEach(fileName => {
+        let extension = getFileExtension(fileName);
+        if (extension) {
+            let thumbnail = getThumbnailName(fileName, extension);
+            if (thumbnail) {
+                const fullFileName = path.resolve(`assets/${req.decode.userid}/${fileName}`);
+                const thePath = path.resolve(`assets/${req.decode.userid}/`);
+                console.log('knex-commands.js uploadAssets generating thumbnail', fullFileName);
+                const tg = new ThumbnailGenerator({
+                    sourcePath: fullFileName,
+                    thumbnailPath: thePath,
+                    tmpDir: thePath //only required if you can't write to /tmp/ and you need to generate gifs
+                  });
+
+                //   tg.generate()
+                //   .then(console.log('thumbnail prayer'));
+
+                tg.generateOneByPercent(90)
+                .then(()  => console.log('prayers'))
+                .catch(err => console.log(err));
+            }
+        }
+    });
+    
+    // TODO: set a counter for the thumbnails and increment the counter in the .then OR setup as recursive Promise chain.
+    //      When all thumbnails are processed then return
+
+    setTimeout(() => {
+        res.status(200).send('success');
+    }, 1000);
+    
 }
 
 exports.getAllModules = (req, res) => {
