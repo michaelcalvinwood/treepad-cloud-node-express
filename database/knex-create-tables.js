@@ -88,7 +88,8 @@ const createBranchesTable = () => {
 const createModulesTable = () => {
     return knex.schema
     .createTable('modules', table => {
-        table.string('module_name').primary().notNullable()
+        table.bigincrements('id').primary()
+        table.string('module_name').notNullable()
         table.string('module_icon', 2048).notNullable()
         table.unique('module_name')
     })
@@ -205,13 +206,13 @@ exports.createTables = () => {
     let reservedTree = '';
     let branchPool = [];
 
-    dropTable('quill')
+    dropTable('notes')
     .then(info => {return dropTable('videos')})
     .then(info => {return dropTable('chat')})
     .then(info => {return dropTable('post')})
     .then(info => {return dropTable('documents')})
     .then(info => {return dropTable('webpage')})
-    .then(info => {return dropTable('image_gallery')})
+    .then(info => {return dropTable('images')})
     .then(info => {return dropTable('modules')})
     .then(info => {return dropTable('branches')})
     .then(info => {return dropTable('trees')})
@@ -226,13 +227,13 @@ exports.createTables = () => {
         console.log ('reserved tree', info);
         return knexCore.initializeNewTree(info[0], '/svg/tree.svg', 'reserved system tree', 'This tree is used as a reference for branches that are assigned to each user branch pool', '#000000', 1)
     })
-    .then(info => {return addModule('quill', '/svg/quill.svg')})
-    .then(info => {return addModule('image_gallery', '/svg/image_gallery.svg')})
+    .then(info => {return addModule('notes', '/svg/quill.svg')})
+    .then(info => {return addModule('images', '/svg/image_gallery.svg')})
+    .then(info => {return addModule('videos', '/svg/video.svg')})
     .then(info => {return addModule('documents', '/svg/documents.svg')})
     .then(info => {return addModule('chat', '/svg/chat.svg')})
     .then(info => {return addModule('post', '/svg/post.svg')})
     .then(info => {return addModule('webpage', '/svg/webpage.svg')})
-    .then(info => {return addModule('videos', '/svg/video.svg')})
     .then(info => {return addUser('admin', "Technologist@33301", 'michaelwood33311@icloud.com')}) // IMPORTANT: Move password to .gitignored .env
     .catch (err => {
         console.log ("Create Tables Error:", err);

@@ -51,7 +51,7 @@ app.use(cors());
 
 app.use((req, res, next) => {
   
-  if (req.url === "/signup" || req.url === "/login" || req.url.startsWith("/asset/")) {
+  if (req.url === "/signup" || req.url === "/login" || req.url.startsWith("/asset/") || req.url === "/authenticate") {
     next();
   } else {
     const token = getToken(req);

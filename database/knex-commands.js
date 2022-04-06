@@ -136,7 +136,7 @@ exports.updateBranchPool = (req, res) => {
     .then(info => {
         return knex('branches')
         .update({
-            tree_id: treeId
+            tree_id: Number(treeId)
         })
         .where({
             branch_id: branchId
@@ -403,7 +403,7 @@ exports.uploadAssets = (req, res) => {
 
     setTimeout(() => {
         res.status(200).send('success');
-    }, 1000);
+    }, 2500);
     
 }
 
@@ -420,11 +420,14 @@ exports.getAllModules = (req, res) => {
 }
 
 exports.setActiveModule = (req, res) => {
-    const {moduleName} = req.body;
+    let {moduleName} = req.body;
     const {branchId} = req.params;
 
     console.log(`knex-commands setActiveModule ${moduleName} for branch ${branchId}`);
 
+    if (moduleName === 'null') moduleName = null;
+
+    
     knex('branches')
     .update({module: moduleName})
     .where({branch_id: branchId})
