@@ -148,18 +148,20 @@ exports.getTrees = (req, res) => {
 //     .get(knexCommands.getActiveModule);
 exports.getActiveModule = (req, res) => {
     const { branchId } = req.params;
+    console.log('knex-commands.js getActiveModule', 'branchId', branchId)
 
     if (!branchId) {
         return res.status(401).json({status: 'error', message: 'missing branchId'}); 
     }
 
+   
     knex('branches')
     .select('module')
-    .where({branch_id: branchId})
+    .where({branch_id: Number(branchId)})
     .then(info=>{
         const moduleName = info[0].module;
 
-
+        console.log('knex-commands.js getActiveModule', 'moduleName', moduleName)
 
         return knex('modules')
         .select('module_icon')
@@ -189,7 +191,7 @@ exports.getActiveModuleContent = (req, res) => {
 
     knex(moduleName)
     .select('content')
-    .where({branch_id: branchId})
+    .where({branch_id: Number(branchId)})
     .then(info => {
         const content = info[0].content;
 

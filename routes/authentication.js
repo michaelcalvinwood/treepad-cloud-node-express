@@ -66,13 +66,15 @@ validateUrl = (view, userId, userName, pathname, res) => {
         const treeId = info[0].tree_id;
         
         knex('trees')
-        .select('tree_name', 'icon')
+        .select('tree_name', 'icon', 'branch_order')
         .where({
             tree_id: treeId
         })
         .then(info => {
+            
             const treeName = info[0].tree_name;
             const icon = info[0].icon;
+            const branchOrder = info[0].branch_order;
 
             let token = jwt.sign({
                 username: userName, 
@@ -83,7 +85,7 @@ validateUrl = (view, userId, userName, pathname, res) => {
                 treeName: treeName,
                 treeIcon: icon
             }, superSecretKey);
-            res.status(200).json({token: token, username: userName, userid: userId, view: view, branchId: branchId, treeId: treeId, treeName: treeName, treeIcon: icon});
+            res.status(200).json({token: token, username: userName, userid: userId, view: view, branchId: branchId, treeId: treeId, treeName: treeName, treeIcon: icon, branchOrder: branchOrder});
             return;
         })
         .catch(err => {
