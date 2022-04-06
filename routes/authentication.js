@@ -9,7 +9,6 @@ const superSecretKey='testKeyChangeLater';
 
 exports.login = (req, res) => {
     const {userName, password} = req.body;
-    console.log(`authentication.js login`, userName, password);
     if (!userName || !password) {
         res.status(401).json({token: null});
         return;
@@ -23,15 +22,12 @@ exports.login = (req, res) => {
         user_name: userName
     })
     .then(info => {
-        console.log('authentication.js login', info);
         if (!info.length) {
             res.status(401).json({token: null})
         }
         const passwordHash = info[0].password;
         userId = info[0].user_id;
-        console.log('authentication.js login', 'userId', userId, 'passwordHash', passwordHash)
         const verified = bcrypt.compareSync(password, passwordHash);
-        console.log('routes.js login verified', verified);
 
         if (verified) {
             let token = jwt.sign({username: userName, userid: userId}, superSecretKey);
@@ -50,10 +46,7 @@ function isNumeric(val) {
   }
 
 validateUrl = (view, userId, userName, pathname, res) => {
-    console.log('authentication.js validateLeafurl', 'userId', userId, 'userName', userName, 'pathname', pathname)
     branchId = pathname.substring(3);
-
-    console.log('authentication.js validateLeafurl', 'branchId', branchId);
 
     if (!isNumeric(branchId)) {
         return res.status(401).json({message: 'invalid branchId'})
@@ -67,13 +60,10 @@ validateUrl = (view, userId, userName, pathname, res) => {
         branch_id: branchId
     })
     .then(info => {
-        console.log('authentication.js validateLeafurl response from branches table', info);
         if (!info.length) {
             return res.status(401).json({message: 'wrong branch number'});
         }
         const treeId = info[0].tree_id;
-
-        console.log('authentication.js validateLeafurl treeId', treeId);
         
         knex('trees')
         .select('tree_name', 'icon')
@@ -81,7 +71,6 @@ validateUrl = (view, userId, userName, pathname, res) => {
             tree_id: treeId
         })
         .then(info => {
-            console.log('authentication.js validateUrl response from trees', info);
             const treeName = info[0].tree_name;
             const icon = info[0].icon;
 
@@ -109,7 +98,6 @@ validateUrl = (view, userId, userName, pathname, res) => {
 }
 
 exports.urlAuthentication = (req, res) => {
-    console.log('authentication.js urlAuthentication', req.body.url)
     const {url} = req.body;
 
     if (!url) {
@@ -130,8 +118,6 @@ exports.urlAuthentication = (req, res) => {
 
     const userName = hostParts[0];
 
-    console.log('authentication.js urlAuthentication getting ready to check users table for userName', userName);
-
     knex('users')
     .select('user_id')
     .where({
@@ -139,14 +125,11 @@ exports.urlAuthentication = (req, res) => {
     })
     .then(info => {
 
-        console.log('authentication.js urlAuthentication users table response', info);
         if (!info.length) {
             return res.status(401).json({message: 'bad userName'});
         }
 
         const pathname = location.pathname;
-
-        console.log('authentication.js urlAuthentication', 'pathname', pathname);
 
         if (pathname.startsWith('/l/')) {
             const userId = info[0].user_id;

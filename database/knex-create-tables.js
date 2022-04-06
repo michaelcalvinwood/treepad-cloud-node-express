@@ -3,8 +3,7 @@ const bcrypt = require("bcrypt");
 const knexCore = require('./knex-core');
 
 const dropTable = table => { 
-    console.log (`dropping ${table}`);
-    return knex.schema.dropTable(table).catch(err => console.log (`could not drop ${table}`, err))};
+    return knex.schema.dropTable(table).catch(err => console.error (`could not drop ${table}`, err))};
 
 const dropAllTables = () => {
 
@@ -13,12 +12,11 @@ const dropAllTables = () => {
     .then (dropTable('trees'))
     .then (dropTable('users'))
     .catch(err => {
-        console.log ("error dropping tables", err);
+        console.error ("error dropping tables", err);
     })
 }
 
 const createUsersTable = () => {
-    console.log ("Creating users table...");
     return knex.schema
     .createTable('users', (table) => {
         table.bigincrements('user_id').unsigned().notNullable()
@@ -32,16 +30,14 @@ const createUsersTable = () => {
     .catch(err => {
         switch (err.errno) {
             case 1050:
-                console.log ("users table already exists");
                 break;
             default:
-                console.log ('create user table error', err);
+                console.error ('create user table error', err);
         }
     })
 }
 
 const createTreesTable = () => {
-    console.log (`creating tree table`)
     return knex.schema
     .createTable('trees', (table) => {
         table.bigincrements('tree_id').unsigned().notNullable()
@@ -56,17 +52,14 @@ const createTreesTable = () => {
     .catch(err => {
         switch (err.errno) {
             case 1050:
-                console.log ("trees table already exists");
                 break;
             default:
-                console.log ('create trees table error', err.errno);
+                console.error ('create trees table error', err.errno);
         }
     })
 }
 
 const createBranchesTable = () => {
-    console.log ("Creating branches table\n\n\n\n");
-
     return knex.schema
     .createTable('branches', table => {
         table.bigincrements('branch_id').unsigned().notNullable()
@@ -77,10 +70,9 @@ const createBranchesTable = () => {
     .catch(err => {
         switch (err.errno) {
             case 1050:
-                console.log ("branches table already exists");
                 break;
             default:
-                console.log ('create branches table error', err.errno);
+                console.error ('create branches table error', err.errno);
         }
     });
 }
@@ -96,10 +88,9 @@ const createModulesTable = () => {
     .catch(err => {
         switch (err.errno) {
             case 1050:
-                console.log ("modules table already exists");
                 break;
             default:
-                console.log ('create modules table error', err.errno);
+                console.error ('create modules table error', err.errno);
         }
     });
 }
@@ -113,10 +104,9 @@ const createModuleTable = moduleName => {
     .catch(err => {
         switch (err.errno) {
             case 1050:
-                console.log (`${moduleName} table already exists`);
                 break;
             default:
-                console.log (`create ${moduleName} table error1`, err.errno);
+                console.error (`create ${moduleName} table error1`, err.errno);
         }
     });
 }
@@ -131,7 +121,6 @@ const insertUser = (userName, password, email) => {
 }
 
 const addModule = (moduleName, moduleIcon) => {
-    console.log(`knex-create-tables.js addModule (${moduleName}, ${moduleIcon})`);
     return knex('modules')
     .insert({
         module_name: moduleName,
@@ -144,8 +133,6 @@ const addModule = (moduleName, moduleIcon) => {
 }
 
 const addUser = (userName, password, email) => {
-
-    console.log (`knex-create-tables.js addUser ${userName}`);
     let userId;
     let reservedTree = 1;
     let branchPool = [];
@@ -153,7 +140,6 @@ const addUser = (userName, password, email) => {
     insertUser (userName, password, email)
     .then(info => {
         userId = info[0];
-        console.log(`User id from ${userName} is ${userId}`)
         return knexCore.createNewBranch(reservedTree)
     })
     .then(info => {
@@ -166,7 +152,6 @@ const addUser = (userName, password, email) => {
     })
     .then(info => {
         branchPool.push(info[0]);
-        console.log('branchPool', branchPool)
         return info[0]
     })
     .then(info => {
@@ -179,16 +164,14 @@ const addUser = (userName, password, email) => {
         })
     })
     .then(info => {
-        console.log(`User ${userName} has been added.`);
     })
     .catch (err => {
         switch (err.errno) {
             case 1062:
-                console.log (`${userName} already exists in users table`);
                 break;
             
             default:
-                console.log ('addUser error', err);
+                console.error ('addUser error', err);
         }
     })
 
@@ -224,7 +207,6 @@ exports.createTables = () => {
     .then(info => {return knex('users').insert({user_name: 'system', password: 'asdghaskghalhewieufdsvagksajegf', email: 'noemail@noemail.com'})}) // IMPORTANT: Move to .env
     .then(info => {
         // create reserved tree to be assigned to branches in the users' branch pool
-        console.log ('reserved tree', info);
         return knexCore.initializeNewTree(info[0], '/svg/tree.svg', 'reserved system tree', 'This tree is used as a reference for branches that are assigned to each user branch pool', '#000000', 1)
     })
     .then(info => {return addModule('notes', '/svg/quill.svg')})
@@ -236,6 +218,6 @@ exports.createTables = () => {
     .then(info => {return addModule('webpage', '/svg/webpage.svg')})
     .then(info => {return addUser('admin', "Technologist@33301", 'michaelwood33311@icloud.com')}) // IMPORTANT: Move password to .gitignored .env
     .catch (err => {
-        console.log ("Create Tables Error:", err);
+        console.error ("Create Tables Error:", err);
     })
 }

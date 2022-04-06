@@ -24,12 +24,10 @@ const storage = multer.diskStorage({
         if (!fs.existsSync(path)){
           fs.mkdirSync(path);
         
-          console.log(`${path} Created Successfully.`);
       }
         cb(null, path);
     },
     filename: (req, file, cb) => {
-        console.log('routes.js multerConfig', 'uploaded file', file, 'req.decode', req.decode);
         if (!req.thumbnails) req.thumbnails = [];
         req.thumbnails.push(file.originalname);
         cb(null, file.originalname)
@@ -85,5 +83,5 @@ const routes = require('./routes/routes');
 app.use('/', routes);
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  console.log(`🚀 Server running at port ${PORT}`);
 });
