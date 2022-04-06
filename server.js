@@ -4,15 +4,11 @@ const app = express();
 const PORT = 8080;
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
+require('dotenv').config();
 
-// const knexCommands = require('./database/knex-commands');
-const knexCreateTables = require('./database/knex-create-tables');
+const superSecretKey=process.env.SUPERSECRETKEY;
 
-//IMPORTANT: Change to .env
-const superSecretKey='testKeyChangeLater';
-
-
-
+// multer is used to write uploaded files to the assets/:userId directory
 // multer setup --begin
 const path = require('path');
 const multer = require('multer');
@@ -20,38 +16,36 @@ const storage = multer.diskStorage({
     destination: (req, file, cb) =>{
 
         // create the destination path if it does not already exist
-        const path = `assets/${req.decode.userid}`;
+        let path='assets/';
+        if (!fs.existsSync(path)){
+          fs.mkdirSync(path);
+        }
+        path = `assets/${req.decode.userid}`;
         if (!fs.existsSync(path)){
           fs.mkdirSync(path);
         
-          console.log(`${path} Created Successfully.`);
       }
         cb(null, path);
     },
     filename: (req, file, cb) => {
-        console.log('routes.js multerConfig', 'uploaded file', file, 'req.decode', req.decode);
         if (!req.thumbnails) req.thumbnails = [];
         req.thumbnails.push(file.originalname);
         cb(null, file.originalname)
     }
 })
-// const upload = multer({storage: storage});
 const upload = multer({
   storage: storage
 });
 
 //multer setup --end
 
-
-knexCreateTables.createTables();
-
 app.use(express.static('public'));
-app.use(express.json()); // IMPORTANT: Remember to use this to allow POST and PUT requests. You can specify route as first parameter.
+app.use(express.json()); 
 app.use(cors());
 
 app.use((req, res, next) => {
   
-  if (req.url === "/signup" || req.url === "/login" || req.url.startsWith("/asset/")) {
+  if (req.url === "/signup" || req.url === "/login" || req.url.startsWith("/asset/") || req.url === "/authenticate" || req.url.startsWith('/initialize')) {
     next();
   } else {
     const token = getToken(req);
@@ -77,13 +71,11 @@ function getToken(req) {
   return req.headers.authorization.split(" ")[1];
 }
 
-// app.use('/assets', upload.any('image'));
-
 app.use('/assets', upload.any('image'));
 
 const routes = require('./routes/routes');
 app.use('/', routes);
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  console.log(`🚀 Server running at port ${PORT}`);
 });

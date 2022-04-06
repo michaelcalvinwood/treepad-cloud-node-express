@@ -13,7 +13,6 @@ exports.initializeNewTree = (userId, icon, treeName, treeDesc, color) => {
 }
 
 exports.createNewBranch = treeId => {
-    console.log(`creating new branch for tree ${treeId}`);
     return knex('branches')
         .insert ({
             tree_id: treeId

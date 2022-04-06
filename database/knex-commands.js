@@ -1,25 +1,10 @@
-// Useful Knex Cheat Sheets:
-
-//     https://devhints.io/knex
-//     https://dev.to/hoanganhlam/knex-cheat-sheet-79o
 const knex = require('knex')(require('../knexfile').development);
-const bcrypt = require("bcrypt");
 const knexCore = require('./knex-core');
 const ThumbnailGenerator = require('@openquantum/video-thumbnail-generator-for-cloud-functions').default;
 const reservedTreeId = 1;
-const fs = require('fs');
 const path = require("path");
 
-
-/* addTree occurs in three steps:
-    1) A new tree is created in trees
-    2) A new branch is created in branches
-    3) The trees.branch_order is updated with initial state of the new branch
-*/
-
-
 const updateNewTreeWithInitialBranch = (treeId, branchId) => {
-    console.log('branch added', branchId);
     return knex('trees')
     .update ({
         branch_order: JSON.stringify([`${branchId}:1`])
@@ -47,8 +32,6 @@ const updateNewBranchWithInitialLeaf = (branchId, leafId) => {
 }
 
 exports.addTree = (req, res) => {
-    console.log("addTree", req.body);
-
     let {userId, icon, treeName, treeDesc, color} = req.body;
 
     if (!userId || !icon || !treeName) {
@@ -72,25 +55,16 @@ exports.addTree = (req, res) => {
         branchId = info[0];
         return updateNewTreeWithInitialBranch(treeId, branchId)
     })
-    // .then(info => {
-    //     return createNewLeaf(branchId)
-    // })
-    // .then(info => {
-    //     leafId = info[0];
-    //     return updateNewBranchWithInitialLeaf(branchId, leafId)
-    // })
     .then(info => {
         res.status(200).json({status: "success"});
     })
     .catch(err => {
-        console.log (`create new tree error`, err);
         res.status(401).json({status: "error", message: err});
     })
 }
 
 exports.updateBranchPool = (req, res) => {
     let {userId, branchId, treeId} = req.params;
-    console.log(`knex-commands.js updateBranchPool userId, branchId, treeId`, userId, branchId, treeId);
 
     if (!userId) {
         return res.status(401).json({status: 'error', message: 'missing userId'}); 
@@ -116,15 +90,11 @@ exports.updateBranchPool = (req, res) => {
         })
     })
     .then(info => {
-        console.log(`knex-commands.js updateBranchPool select info`, JSON.stringify(info[0]))
         let branchPool = JSON.parse(info[0].branch_pool)
-        console.log(`knex-commands.js updateBranchPool branchPool`, branchPool);
         branchId = Number(branchId);
         branchPool = branchPool.map(branch => {
-            console.log(`knex-commands.js updateBranchPool compare ${branch}:${typeof branch} to ${branchId}:${typeof branchId}`);
             return branch !== branchId ? branch : newBranch
         })
-        console.log(`knex-commands.js updateBranchPool new branchPool`, branchPool);
         return knex('users')
         .update ({
             branch_pool: JSON.stringify(branchPool)
@@ -136,7 +106,7 @@ exports.updateBranchPool = (req, res) => {
     .then(info => {
         return knex('branches')
         .update({
-            tree_id: treeId
+            tree_id: Number(treeId)
         })
         .where({
             branch_id: branchId
@@ -165,8 +135,6 @@ exports.getTrees = (req, res) => {
     .catch (err => res.status(401).json({status: 'error', message: err}));
 }
 
-// router.route('/branches/active-module/:branchId')
-//     .get(knexCommands.getActiveModule);
 exports.getActiveModule = (req, res) => {
     const { branchId } = req.params;
 
@@ -174,14 +142,12 @@ exports.getActiveModule = (req, res) => {
         return res.status(401).json({status: 'error', message: 'missing branchId'}); 
     }
 
+   
     knex('branches')
     .select('module')
-    .where({branch_id: branchId})
+    .where({branch_id: Number(branchId)})
     .then(info=>{
-        console.log(`knex-commands.js getActiveModule axios branches`, info);
         const moduleName = info[0].module;
-
-
 
         return knex('modules')
         .select('module_icon')
@@ -211,7 +177,7 @@ exports.getActiveModuleContent = (req, res) => {
 
     knex(moduleName)
     .select('content')
-    .where({branch_id: branchId})
+    .where({branch_id: Number(branchId)})
     .then(info => {
         const content = info[0].content;
 
@@ -276,8 +242,6 @@ exports.saveBranchOrder = (req, res) => {
 
     const {branchOrder, branchNames} = req.body;
 
-    console.log(`knex-commands.js saveBranchOrder treeId, branchOrder`, treeId, branchOrder);
-
     knex('trees')
     .update({branch_order: branchOrder})
     .where({"trees.tree_id": treeId})
@@ -293,8 +257,6 @@ exports.saveBranchName = (req, res) => {
     }
 
     const {branchOrder, branchNames} = req.body;
-
-    console.log(`knex-commands.js saveBranchName branchId, branchName`, branchId, branchName);
 
     knex('branches')
     .update({branch_name: branchName})
@@ -370,10 +332,6 @@ getThumbnailName = (fileName, extension) => {
 }
 
 exports.uploadAssets = (req, res) => {
-    console.log('knex-commands.js uploadAssets', 'token', req.decode);
-
-    console.log('knex-commands.js uploadAssets', 'thumbnails', req.thumbnails);
-
     req.thumbnails.forEach(fileName => {
         let extension = getFileExtension(fileName);
         if (extension) {
@@ -381,19 +339,15 @@ exports.uploadAssets = (req, res) => {
             if (thumbnail) {
                 const fullFileName = path.resolve(`assets/${req.decode.userid}/${fileName}`);
                 const thePath = path.resolve(`assets/${req.decode.userid}/`);
-                console.log('knex-commands.js uploadAssets generating thumbnail', fullFileName);
                 const tg = new ThumbnailGenerator({
                     sourcePath: fullFileName,
                     thumbnailPath: thePath,
                     tmpDir: thePath //only required if you can't write to /tmp/ and you need to generate gifs
                   });
 
-                //   tg.generate()
-                //   .then(console.log('thumbnail prayer'));
-
                 tg.generateOneByPercent(90)
-                .then(()  => console.log('prayers'))
-                .catch(err => console.log(err));
+                .then(()  => {})
+                .catch(err => console.error(err));
             }
         }
     });
@@ -403,13 +357,11 @@ exports.uploadAssets = (req, res) => {
 
     setTimeout(() => {
         res.status(200).send('success');
-    }, 1000);
+    }, 2500);
     
 }
 
 exports.getAllModules = (req, res) => {
-    console.log('knex-commands.js getAllModules');
-
     knex('modules')
     .then(info => {
         res.status(200).json(info);
@@ -420,11 +372,11 @@ exports.getAllModules = (req, res) => {
 }
 
 exports.setActiveModule = (req, res) => {
-    const {moduleName} = req.body;
+    let {moduleName} = req.body;
     const {branchId} = req.params;
 
-    console.log(`knex-commands setActiveModule ${moduleName} for branch ${branchId}`);
-
+    if (moduleName === 'null') moduleName = null;
+    
     knex('branches')
     .update({module: moduleName})
     .where({branch_id: branchId})
