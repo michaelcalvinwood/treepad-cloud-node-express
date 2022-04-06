@@ -1,9 +1,7 @@
 const knex = require('knex')(require('../knexfile').development);
-const bcrypt = require("bcrypt");
 const knexCore = require('./knex-core');
 const ThumbnailGenerator = require('@openquantum/video-thumbnail-generator-for-cloud-functions').default;
 const reservedTreeId = 1;
-const fs = require('fs');
 const path = require("path");
 
 const updateNewTreeWithInitialBranch = (treeId, branchId) => {
@@ -57,13 +55,6 @@ exports.addTree = (req, res) => {
         branchId = info[0];
         return updateNewTreeWithInitialBranch(treeId, branchId)
     })
-    // .then(info => {
-    //     return createNewLeaf(branchId)
-    // })
-    // .then(info => {
-    //     leafId = info[0];
-    //     return updateNewBranchWithInitialLeaf(branchId, leafId)
-    // })
     .then(info => {
         res.status(200).json({status: "success"});
     })
@@ -144,11 +135,8 @@ exports.getTrees = (req, res) => {
     .catch (err => res.status(401).json({status: 'error', message: err}));
 }
 
-// router.route('/branches/active-module/:branchId')
-//     .get(knexCommands.getActiveModule);
 exports.getActiveModule = (req, res) => {
     const { branchId } = req.params;
-    console.log('knex-commands.js getActiveModule', 'branchId', branchId)
 
     if (!branchId) {
         return res.status(401).json({status: 'error', message: 'missing branchId'}); 
@@ -160,8 +148,6 @@ exports.getActiveModule = (req, res) => {
     .where({branch_id: Number(branchId)})
     .then(info=>{
         const moduleName = info[0].module;
-
-        console.log('knex-commands.js getActiveModule', 'moduleName', moduleName)
 
         return knex('modules')
         .select('module_icon')

@@ -1,6 +1,9 @@
 const knex = require('knex')(require('../knexfile').development);
 const bcrypt = require("bcrypt");
 const knexCore = require('./knex-core');
+require('dotenv').config();
+const path = require("path");
+const fs = require('fs');
 
 const dropTable = table => { 
     return knex.schema.dropTable(table).catch(err => console.error (`could not drop ${table}`, err))};
@@ -184,7 +187,22 @@ const createReservedBranch = treeId => {
     })
 }
 
-exports.createTables = () => {
+exports.createTables = (req, res) => {
+    if (!req.query.key) {
+        return res.status(401).json({message: 'missing key'});
+    }
+
+    const {key} = req.query;
+
+    if (key !== process.env.INITIALIZEKEY) {
+        return res.status(401).json({message: 'invalid key'});
+    }
+
+    // directory path
+    const dir = path.resolve('assets/');
+
+    // delete directory recursively
+    fs.rm(dir, { recursive: true }, (err) => { });
 
     let reservedTree = '';
     let branchPool = [];
@@ -204,7 +222,7 @@ exports.createTables = () => {
     .then(info => {return createTreesTable()})
     .then(info => {return createBranchesTable()})
     .then(info => {return createModulesTable()})
-    .then(info => {return knex('users').insert({user_name: 'system', password: 'asdghaskghalhewieufdsvagksajegf', email: 'noemail@noemail.com'})}) // IMPORTANT: Move to .env
+    .then(info => {return knex('users').insert({user_name: 'system', password: 'asdghaskghalhewieufdsvagksajegf', email: 'noemail@noemail.com'})}) // Note: Hackers cannot use this info to bypass because a password hash will be applied when logging in. In other words, this value is fake hash, not a fake password. Thus, it is not in the .env file.
     .then(info => {
         // create reserved tree to be assigned to branches in the users' branch pool
         return knexCore.initializeNewTree(info[0], '/svg/tree.svg', 'reserved system tree', 'This tree is used as a reference for branches that are assigned to each user branch pool', '#000000', 1)
@@ -216,8 +234,11 @@ exports.createTables = () => {
     .then(info => {return addModule('chat', '/svg/chat.svg')})
     .then(info => {return addModule('post', '/svg/post.svg')})
     .then(info => {return addModule('webpage', '/svg/webpage.svg')})
-    .then(info => {return addUser('admin', "Technologist@33301", 'michaelwood33311@icloud.com')}) // IMPORTANT: Move password to .gitignored .env
+    .then(info => {return addUser('admin', process.env.ADMINPASSWORD, process.env.ADMINEMAIL)})
+    .then(info => {
+        res.status(200).json({message: 'tables created'});
+    })
     .catch (err => {
-        console.error ("Create Tables Error:", err);
+        res.status(500).json({error: err});
     })
 }

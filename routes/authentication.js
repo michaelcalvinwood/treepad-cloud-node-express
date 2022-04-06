@@ -1,11 +1,9 @@
 const knex = require('knex')(require('../knexfile').development);
 const bcrypt = require("bcrypt");
 const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
-
-//IMPORTANT: Change to .env
-const superSecretKey='testKeyChangeLater';
-
+const superSecretKey=process.env.SUPERSECRETKEY;
 
 exports.login = (req, res) => {
     const {userName, password} = req.body;
