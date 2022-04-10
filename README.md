@@ -3,24 +3,24 @@ This project depends on ffmpeg for generating video thumbnails.
 
 Install ffmpeg before proceeding forward (e.g. for mac: brew install ffmpeg).
 
-The server also requires a .env file in the root directory with the following variables set:
-    SUPERSECRETKEY={key used to sign JWT tokens}
-    ADMINPASSWORD={password for the required administrator account}
-    ADMINEMAIL={admin contact email address}
-    INITIALIZEKEY={api key to be used when creating/resetting database tables}
+The server also requires a .env file in the root directory with the following variables set:\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SUPERSECRETKEY={key used to sign JWT tokens}\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ADMINPASSWORD={password for the required administrator account}\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ADMINEMAIL={admin contact email address}\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INITIALIZEKEY={api key to be used when creating/resetting database tables}\
 
-The server also requires a knexfile.js in the root directory. Be sure to set the development configuration as this is still an in-development version. An example is as follows:
-    module.exports = {
-        development: {
-        client: "mysql",
-        connection: {
-            host: {hostName},
-            user: {userName},
-            password: {database password},
-            database: "treepad_cloud",
-        }
-        }
-    };
+The server also requires a knexfile.js in the root directory. Be sure to set the development configuration as this is still an in-development version. An example is as follows:\
+    module.exports = {\
+        development: {\
+        client: "mysql",\
+        connection: {\
+            host: {hostName},\
+            user: {userName},\
+            password: {database password},\
+            database: "treepad_cloud",\
+        }\
+        }\
+    };\
 
 After setting up the above, run the following to install all remaining dependencies:
     npm install
